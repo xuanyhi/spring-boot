@@ -21,47 +21,57 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * OAuth 2.0 resource server properties.
  *
  * @author Madhura Bhave
+ * @author Artsiom Yudovin
+ * @since 2.1.0
  */
-@ConfigurationProperties(prefix = "spring.security.oauth2.resource")
+@ConfigurationProperties(prefix = "spring.security.oauth2.resourceserver")
 public class OAuth2ResourceServerProperties {
 
-	private Jwt jwt = new Jwt();
+	private final Jwt jwt = new Jwt();
 
 	public Jwt getJwt() {
 		return this.jwt;
 	}
 
-	public void setJwt(Jwt jwt) {
-		this.jwt = jwt;
-	}
-
 	public static class Jwt {
 
-		private Jwk jwk = new Jwk();
-
-		public Jwk getJwk() {
-			return this.jwk;
-		}
-
-		public void setJwk(Jwk jwk) {
-			this.jwk = jwk;
-		}
-
-	}
-
-	public static class Jwk {
+		/**
+		 * JSON Web Key URI to use to verify the JWT token.
+		 */
+		private String jwkSetUri;
 
 		/**
-		 * The URI to get verification keys to verify the JWT token.
+		 * JSON Web Algorithm used for verifying the digital signatures.
 		 */
-		private String setUri;
+		private String jwsAlgorithm = "RS256";
 
-		public String getSetUri() {
-			return this.setUri;
+		/**
+		 * URI that an OpenID Connect Provider asserts as its Issuer Identifier.
+		 */
+		private String issuerUri;
+
+		public String getJwkSetUri() {
+			return this.jwkSetUri;
 		}
 
-		public void setSetUri(String setUri) {
-			this.setUri = setUri;
+		public void setJwkSetUri(String jwkSetUri) {
+			this.jwkSetUri = jwkSetUri;
+		}
+
+		public String getJwsAlgorithm() {
+			return this.jwsAlgorithm;
+		}
+
+		public void setJwsAlgorithm(String jwsAlgorithm) {
+			this.jwsAlgorithm = jwsAlgorithm;
+		}
+
+		public String getIssuerUri() {
+			return this.issuerUri;
+		}
+
+		public void setIssuerUri(String issuerUri) {
+			this.issuerUri = issuerUri;
 		}
 
 	}

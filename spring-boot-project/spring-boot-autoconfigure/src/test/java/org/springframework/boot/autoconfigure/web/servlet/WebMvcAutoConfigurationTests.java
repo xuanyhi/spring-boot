@@ -37,7 +37,7 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.context.PropertyPlaceholderAutoConfiguration;
 import org.springframework.boot.autoconfigure.http.HttpMessageConverters;
 import org.springframework.boot.autoconfigure.http.HttpMessageConvertersAutoConfiguration;
-import org.springframework.boot.autoconfigure.task.TaskExecutorAutoConfiguration;
+import org.springframework.boot.autoconfigure.task.TaskExecutionAutoConfiguration;
 import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
 import org.springframework.boot.autoconfigure.validation.ValidatorAdapter;
 import org.springframework.boot.autoconfigure.web.servlet.WebMvcAutoConfiguration.WebMvcAutoConfigurationAdapter;
@@ -45,7 +45,8 @@ import org.springframework.boot.test.context.assertj.AssertableWebApplicationCon
 import org.springframework.boot.test.context.runner.ContextConsumer;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.boot.web.server.WebServerFactoryCustomizerBeanPostProcessor;
-import org.springframework.boot.web.servlet.filter.OrderedHttpPutFormContentFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.boot.web.servlet.filter.OrderedFormContentFilter;
 import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -71,7 +72,9 @@ import org.springframework.web.accept.ParameterContentNegotiationStrategy;
 import org.springframework.web.accept.PathExtensionContentNegotiationStrategy;
 import org.springframework.web.bind.support.ConfigurableWebBindingInitializer;
 import org.springframework.web.context.request.ServletWebRequest;
-import org.springframework.web.filter.HttpPutFormContentFilter;
+import org.springframework.web.filter.FormContentFilter;
+import org.springframework.web.filter.HiddenHttpMethodFilter;
+import org.springframework.web.filter.RequestContextFilter;
 import org.springframework.web.servlet.HandlerAdapter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import org.springframework.web.servlet.HandlerMapping;
@@ -89,6 +92,7 @@ import org.springframework.web.servlet.i18n.AcceptHeaderLocaleResolver;
 import org.springframework.web.servlet.i18n.FixedLocaleResolver;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
+import org.springframework.web.servlet.mvc.support.DefaultHandlerExceptionResolver;
 import org.springframework.web.servlet.resource.AppCacheManifestTransformer;
 import org.springframework.web.servlet.resource.CachingResourceResolver;
 import org.springframework.web.servlet.resource.CachingResourceTransformer;
@@ -118,6 +122,7 @@ import static org.mockito.Mockito.mock;
  * @author Brian Clozel
  * @author Eddú Meléndez
  * @author Kristine Jetzke
+ * @author Artsiom Yudovin
  */
 public class WebMvcAutoConfigurationTests {
 
@@ -479,7 +484,7 @@ public class WebMvcAutoConfigurationTests {
 	public void asyncTaskExecutorWithApplicationTaskExecutor() {
 		this.contextRunner
 				.withConfiguration(
-						AutoConfigurations.of(TaskExecutorAutoConfiguration.class))
+						AutoConfigurations.of(TaskExecutionAutoConfiguration.class))
 				.run((context) -> {
 					assertThat(context).hasSingleBean(AsyncTaskExecutor.class);
 					assertThat(ReflectionTestUtils.getField(
@@ -494,7 +499,7 @@ public class WebMvcAutoConfigurationTests {
 		this.contextRunner
 				.withUserConfiguration(CustomApplicationTaskExecutorConfig.class)
 				.withConfiguration(
-						AutoConfigurations.of(TaskExecutorAutoConfiguration.class))
+						AutoConfigurations.of(TaskExecutionAutoConfiguration.class))
 				.run((context) -> {
 					assertThat(context).doesNotHaveBean(AsyncTaskExecutor.class);
 					assertThat(ReflectionTestUtils.getField(
@@ -508,21 +513,19 @@ public class WebMvcAutoConfigurationTests {
 	public void asyncTaskExecutorWithMvcConfigurerCanOverrideExecutor() {
 		this.contextRunner.withUserConfiguration(CustomAsyncTaskExecutorConfigurer.class)
 				.withConfiguration(
-						AutoConfigurations.of(TaskExecutorAutoConfiguration.class))
-				.run((context) -> {
-					assertThat(ReflectionTestUtils.getField(
-							context.getBean(RequestMappingHandlerAdapter.class),
-							"taskExecutor"))
-									.isSameAs(context.getBean(
-											CustomAsyncTaskExecutorConfigurer.class).taskExecutor);
-				});
+						AutoConfigurations.of(TaskExecutionAutoConfiguration.class))
+				.run((context) -> assertThat(ReflectionTestUtils.getField(
+						context.getBean(RequestMappingHandlerAdapter.class),
+						"taskExecutor"))
+								.isSameAs(context.getBean(
+										CustomAsyncTaskExecutorConfigurer.class).taskExecutor));
 	}
 
 	@Test
 	public void asyncTaskExecutorWithCustomNonApplicationTaskExecutor() {
 		this.contextRunner.withUserConfiguration(CustomAsyncTaskExecutorConfig.class)
 				.withConfiguration(
-						AutoConfigurations.of(TaskExecutorAutoConfiguration.class))
+						AutoConfigurations.of(TaskExecutionAutoConfiguration.class))
 				.run((context) -> {
 					assertThat(context).hasSingleBean(AsyncTaskExecutor.class);
 					assertThat(ReflectionTestUtils.getField(
@@ -549,27 +552,40 @@ public class WebMvcAutoConfigurationTests {
 	}
 
 	@Test
-	public void httpPutFormContentFilterIsAutoConfigured() {
+	public void formContentFilterIsAutoConfigured() {
 		this.contextRunner.run((context) -> assertThat(context)
-				.hasSingleBean(OrderedHttpPutFormContentFilter.class));
+				.hasSingleBean(OrderedFormContentFilter.class));
 	}
 
 	@Test
-	public void httpPutFormContentFilterCanBeOverridden() {
-		this.contextRunner.withUserConfiguration(CustomHttpPutFormContentFilter.class)
+	public void formContentFilterCanBeOverridden() {
+		this.contextRunner.withUserConfiguration(CustomFormContentFilter.class)
 				.run((context) -> {
-					assertThat(context)
-							.doesNotHaveBean(OrderedHttpPutFormContentFilter.class);
-					assertThat(context).hasSingleBean(HttpPutFormContentFilter.class);
+					assertThat(context).doesNotHaveBean(OrderedFormContentFilter.class);
+					assertThat(context).hasSingleBean(FormContentFilter.class);
 				});
 	}
 
 	@Test
-	public void httpPutFormContentFilterCanBeDisabled() {
+	public void formContentFilterCanBeDisabled() {
 		this.contextRunner
-				.withPropertyValues("spring.mvc.formcontent.putfilter.enabled=false")
+				.withPropertyValues("spring.mvc.formcontent.filter.enabled=false")
 				.run((context) -> assertThat(context)
-						.doesNotHaveBean(HttpPutFormContentFilter.class));
+						.doesNotHaveBean(FormContentFilter.class));
+	}
+
+	@Test
+	public void hiddenHttpMethodFilterCanBeDisabled() {
+		this.contextRunner
+				.withPropertyValues("spring.mvc.hiddenmethod.filter.enabled=false")
+				.run((context) -> assertThat(context)
+						.doesNotHaveBean(HiddenHttpMethodFilter.class));
+	}
+
+	@Test
+	public void hiddenHttpMethodFilterEnabledByDefault() {
+		this.contextRunner.run((context) -> assertThat(context)
+				.hasSingleBean(HiddenHttpMethodFilter.class));
 	}
 
 	@Test
@@ -631,7 +647,8 @@ public class WebMvcAutoConfigurationTests {
 			List<HandlerExceptionResolver> delegates = ((HandlerExceptionResolverComposite) resolver)
 					.getExceptionResolvers();
 			for (HandlerExceptionResolver delegate : delegates) {
-				if (delegate instanceof AbstractHandlerExceptionResolver) {
+				if (delegate instanceof AbstractHandlerExceptionResolver
+						&& !(delegate instanceof DefaultHandlerExceptionResolver)) {
 					consumer.accept(ReflectionTestUtils.getField(delegate, "warnLogger"));
 				}
 			}
@@ -779,7 +796,7 @@ public class WebMvcAutoConfigurationTests {
 	@Test
 	public void cachePeriod() {
 		this.contextRunner.withPropertyValues("spring.resources.cache.period:5")
-				.run((context) -> assertCachePeriod(context));
+				.run(this::assertCachePeriod);
 	}
 
 	private void assertCachePeriod(AssertableWebApplicationContext context) {
@@ -802,7 +819,7 @@ public class WebMvcAutoConfigurationTests {
 		this.contextRunner
 				.withPropertyValues("spring.resources.cache.cachecontrol.max-age:5",
 						"spring.resources.cache.cachecontrol.proxy-revalidate:true")
-				.run((context) -> assertCacheControl(context));
+				.run(this::assertCacheControl);
 	}
 
 	@Test
@@ -896,6 +913,33 @@ public class WebMvcAutoConfigurationTests {
 		ServletWebRequest webRequest = new ServletWebRequest(request);
 		List<MediaType> mediaTypes = strategy.resolveMediaTypes(webRequest);
 		assertThat(mediaTypes).containsOnly(MediaType.ALL);
+	}
+
+	@Test
+	public void requestContextFilterIsAutoConfigured() {
+		this.contextRunner.run((context) -> assertThat(context)
+				.hasSingleBean(RequestContextFilter.class));
+	}
+
+	@Test
+	public void whenUserDefinesARequestContextFilterTheAutoConfiguredRegistrationBacksOff() {
+		this.contextRunner.withUserConfiguration(RequestContextFilterConfiguration.class)
+				.run((context) -> {
+					assertThat(context).hasSingleBean(RequestContextFilter.class);
+					assertThat(context).hasBean("customRequestContextFilter");
+				});
+	}
+
+	@Test
+	public void whenUserDefinesARequestContextFilterRegistrationTheAutoConfiguredFilterBacksOff() {
+		this.contextRunner
+				.withUserConfiguration(
+						RequestContextFilterRegistrationConfiguration.class)
+				.run((context) -> {
+					assertThat(context).hasSingleBean(FilterRegistrationBean.class);
+					assertThat(context).hasBean("customRequestContextFilterRegistration");
+					assertThat(context).doesNotHaveBean(RequestContextFilter.class);
+				});
 	}
 
 	private void assertCacheControl(AssertableWebApplicationContext context) {
@@ -1060,11 +1104,11 @@ public class WebMvcAutoConfigurationTests {
 	}
 
 	@Configuration
-	static class CustomHttpPutFormContentFilter {
+	static class CustomFormContentFilter {
 
 		@Bean
-		public HttpPutFormContentFilter customHttpPutFormContentFilter() {
-			return new HttpPutFormContentFilter();
+		public FormContentFilter customFormContentFilter() {
+			return new FormContentFilter();
 		}
 
 	}
@@ -1213,6 +1257,27 @@ public class WebMvcAutoConfigurationTests {
 		@Override
 		public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
 			configurer.setTaskExecutor(this.taskExecutor);
+		}
+
+	}
+
+	@Configuration
+	static class RequestContextFilterConfiguration {
+
+		@Bean
+		public RequestContextFilter customRequestContextFilter() {
+			return new RequestContextFilter();
+		}
+
+	}
+
+	@Configuration
+	static class RequestContextFilterRegistrationConfiguration {
+
+		@Bean
+		public FilterRegistrationBean<RequestContextFilter> customRequestContextFilterRegistration() {
+			return new FilterRegistrationBean<RequestContextFilter>(
+					new RequestContextFilter());
 		}
 
 	}

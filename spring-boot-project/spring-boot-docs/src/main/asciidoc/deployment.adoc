@@ -1,5 +1,6 @@
 [[deployment]]
 = Deploying Spring Boot Applications
+include::attributes.adoc[]
 
 [partintro]
 --
@@ -674,7 +675,9 @@ description up front (and it need not change), you may as well provide it when t
 generated.
 
 To customize written elements, use the `embeddedLaunchScriptProperties` option of the
-Spring Boot Maven or Gradle plugins.
+Spring Boot Maven plugin or the
+{spring-boot-gradle-plugin-reference}/#packaging-executable-configuring-launch-script[`properties`
+property of the Spring Boot Gradle plugin's `launchScript`].
 
 The following property substitutions are supported with the default script:
 
@@ -876,7 +879,7 @@ application.
 
 [[deployment-whats-next]]
 == What to Read Next
-Check out the https://www.cloudfoundry.com/[Cloud Foundry],
+Check out the https://www.cloudfoundry.org/[Cloud Foundry],
 https://www.heroku.com/[Heroku], https://www.openshift.com[OpenShift], and
 https://boxfuse.com[Boxfuse] web sites for more information about the kinds of features
 that a PaaS can offer. These are just four of the most popular Java PaaS providers. Since

@@ -36,6 +36,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
 import org.springframework.boot.autoconfigure.condition.SpringBootCondition;
+import org.springframework.boot.autoconfigure.http.HttpProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
@@ -81,12 +82,16 @@ public class DispatcherServletAutoConfiguration {
 	@Configuration
 	@Conditional(DefaultDispatcherServletCondition.class)
 	@ConditionalOnClass(ServletRegistration.class)
-	@EnableConfigurationProperties(WebMvcProperties.class)
+	@EnableConfigurationProperties({ HttpProperties.class, WebMvcProperties.class })
 	protected static class DispatcherServletConfiguration {
+
+		private final HttpProperties httpProperties;
 
 		private final WebMvcProperties webMvcProperties;
 
-		public DispatcherServletConfiguration(WebMvcProperties webMvcProperties) {
+		public DispatcherServletConfiguration(HttpProperties httpProperties,
+				WebMvcProperties webMvcProperties) {
+			this.httpProperties = httpProperties;
 			this.webMvcProperties = webMvcProperties;
 		}
 
@@ -99,6 +104,8 @@ public class DispatcherServletAutoConfiguration {
 					this.webMvcProperties.isDispatchTraceRequest());
 			dispatcherServlet.setThrowExceptionIfNoHandlerFound(
 					this.webMvcProperties.isThrowExceptionIfNoHandlerFound());
+			dispatcherServlet.setEnableLoggingRequestDetails(
+					this.httpProperties.isLogRequestDetails());
 			return dispatcherServlet;
 		}
 

@@ -30,11 +30,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.autoconfigure.OverrideAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.core.AutoConfigureCache;
 import org.springframework.boot.test.autoconfigure.filter.TypeExcludeFilters;
+import org.springframework.boot.test.autoconfigure.json.AutoConfigureJson;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.annotation.AliasFor;
+import org.springframework.core.env.Environment;
 import org.springframework.test.context.BootstrapWith;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.reactive.server.WebTestClient;
@@ -64,6 +66,7 @@ import org.springframework.test.web.reactive.server.WebTestClient;
  * annotation.
  *
  * @author Stephane Nicoll
+ * @author Artsiom Yudovin
  * @since 2.0.0
  * @see AutoConfigureWebFlux
  * @see AutoConfigureWebTestClient
@@ -77,10 +80,19 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 @OverrideAutoConfiguration(enabled = false)
 @TypeExcludeFilters(WebFluxTypeExcludeFilter.class)
 @AutoConfigureCache
+@AutoConfigureJson
 @AutoConfigureWebFlux
 @AutoConfigureWebTestClient
 @ImportAutoConfiguration
 public @interface WebFluxTest {
+
+	/**
+	 * Properties in form {@literal key=value} that should be added to the Spring
+	 * {@link Environment} before the test runs.
+	 * @return the properties to add
+	 * @since 2.1.0
+	 */
+	String[] properties() default {};
 
 	/**
 	 * Specifies the controllers to test. This is an alias of {@link #controllers()} which

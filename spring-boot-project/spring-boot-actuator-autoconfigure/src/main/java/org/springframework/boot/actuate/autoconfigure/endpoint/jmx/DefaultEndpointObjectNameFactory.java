@@ -54,17 +54,17 @@ class DefaultEndpointObjectNameFactory implements EndpointObjectNameFactory {
 	@SuppressWarnings("deprecation")
 	private static boolean determineUniqueNames(Environment environment,
 			JmxEndpointProperties properties) {
-		Boolean uniqueName = environment.getProperty("spring.jmx.unique-names",
+		Boolean uniqueNames = environment.getProperty("spring.jmx.unique-names",
 				Boolean.class);
 		Boolean endpointUniqueNames = properties.getUniqueNames();
-		if (uniqueName == null) {
+		if (uniqueNames == null) {
 			return (endpointUniqueNames != null) ? endpointUniqueNames : false;
 		}
-		else if (endpointUniqueNames != null & !uniqueName.equals(endpointUniqueNames)) {
+		if (endpointUniqueNames != null & !uniqueNames.equals(endpointUniqueNames)) {
 			throw new IllegalArgumentException(
 					"Configuration mismatch, 'management.endpoints.jmx.unique-names' is deprecated, use only 'spring.jmx.unique-names'");
 		}
-		return uniqueName;
+		return uniqueNames;
 	}
 
 	@Override
@@ -72,7 +72,8 @@ class DefaultEndpointObjectNameFactory implements EndpointObjectNameFactory {
 			throws MalformedObjectNameException {
 		StringBuilder builder = new StringBuilder(this.properties.getDomain());
 		builder.append(":type=Endpoint");
-		builder.append(",name=").append(StringUtils.capitalize(endpoint.getId()));
+		builder.append(",name=")
+				.append(StringUtils.capitalize(endpoint.getEndpointId().toString()));
 		String baseName = builder.toString();
 		if (this.mBeanServer != null && hasMBean(baseName)) {
 			builder.append(",context=").append(this.contextId);

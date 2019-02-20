@@ -21,7 +21,6 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Test;
 
-import org.springframework.beans.DirectFieldAccessor;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
 import org.springframework.boot.web.servlet.MultipartConfigFactory;
@@ -29,6 +28,7 @@ import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.util.unit.DataSize;
 import org.springframework.web.multipart.MultipartException;
 import org.springframework.web.multipart.MultipartHttpServletRequest;
 import org.springframework.web.multipart.MultipartResolver;
@@ -175,9 +175,10 @@ public class DispatcherServletAutoConfigurationTests {
 					.containsExactly(true);
 			assertThat(dispatcherServlet).extracting("dispatchTraceRequest")
 					.containsExactly(false);
-			assertThat(new DirectFieldAccessor(
-					context.getBean("dispatcherServletRegistration"))
-							.getPropertyValue("loadOnStartup")).isEqualTo(-1);
+			assertThat(dispatcherServlet).extracting("enableLoggingRequestDetails")
+					.containsExactly(false);
+			assertThat(context.getBean("dispatcherServletRegistration"))
+					.hasFieldOrPropertyWithValue("loadOnStartup", -1);
 		});
 	}
 
@@ -198,9 +199,8 @@ public class DispatcherServletAutoConfigurationTests {
 							.containsExactly(false);
 					assertThat(dispatcherServlet).extracting("dispatchTraceRequest")
 							.containsExactly(true);
-					assertThat(new DirectFieldAccessor(
-							context.getBean("dispatcherServletRegistration"))
-									.getPropertyValue("loadOnStartup")).isEqualTo(5);
+					assertThat(context.getBean("dispatcherServletRegistration"))
+							.hasFieldOrPropertyWithValue("loadOnStartup", 5);
 				});
 	}
 
@@ -210,8 +210,8 @@ public class DispatcherServletAutoConfigurationTests {
 		@Bean
 		public MultipartConfigElement multipartConfig() {
 			MultipartConfigFactory factory = new MultipartConfigFactory();
-			factory.setMaxFileSize("128KB");
-			factory.setMaxRequestSize("128KB");
+			factory.setMaxFileSize(DataSize.ofKilobytes(128));
+			factory.setMaxRequestSize(DataSize.ofKilobytes(128));
 			return factory.createMultipartConfig();
 		}
 

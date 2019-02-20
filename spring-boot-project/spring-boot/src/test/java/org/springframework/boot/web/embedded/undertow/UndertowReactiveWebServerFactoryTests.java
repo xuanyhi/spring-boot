@@ -19,6 +19,7 @@ package org.springframework.boot.web.embedded.undertow;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.Arrays;
 
 import io.undertow.Undertow;
@@ -35,6 +36,7 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -59,17 +61,17 @@ public class UndertowReactiveWebServerFactoryTests
 	@Test
 	public void setNullBuilderCustomizersShouldThrowException() {
 		UndertowReactiveWebServerFactory factory = getFactory();
-		this.thrown.expect(IllegalArgumentException.class);
-		this.thrown.expectMessage("Customizers must not be null");
-		factory.setBuilderCustomizers(null);
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> factory.setBuilderCustomizers(null))
+				.withMessageContaining("Customizers must not be null");
 	}
 
 	@Test
 	public void addNullBuilderCustomizersShouldThrowException() {
 		UndertowReactiveWebServerFactory factory = getFactory();
-		this.thrown.expect(IllegalArgumentException.class);
-		this.thrown.expectMessage("Customizers must not be null");
-		factory.addBuilderCustomizers((UndertowBuilderCustomizer[]) null);
+		assertThatIllegalArgumentException().isThrownBy(
+				() -> factory.addBuilderCustomizers((UndertowBuilderCustomizer[]) null))
+				.withMessageContaining("Customizers must not be null");
 	}
 
 	@Test
@@ -77,9 +79,7 @@ public class UndertowReactiveWebServerFactoryTests
 		UndertowReactiveWebServerFactory factory = getFactory();
 		HttpHandler handler = mock(HttpHandler.class);
 		UndertowBuilderCustomizer[] customizers = new UndertowBuilderCustomizer[4];
-		for (int i = 0; i < customizers.length; i++) {
-			customizers[i] = mock(UndertowBuilderCustomizer.class);
-		}
+		Arrays.setAll(customizers, (i) -> mock(UndertowBuilderCustomizer.class));
 		factory.setBuilderCustomizers(Arrays.asList(customizers[0], customizers[1]));
 		factory.addBuilderCustomizers(customizers[2], customizers[3]);
 		this.webServer = factory.getWebServer(handler);
@@ -123,7 +123,7 @@ public class UndertowReactiveWebServerFactoryTests
 		Mono<String> result = client.post().uri("/test").contentType(MediaType.TEXT_PLAIN)
 				.body(BodyInserters.fromObject("Hello World")).exchange()
 				.flatMap((response) -> response.bodyToMono(String.class));
-		assertThat(result.block()).isEqualTo("Hello World");
+		assertThat(result.block(Duration.ofSeconds(30))).isEqualTo("Hello World");
 		File accessLog = new File(accessLogDirectory, expectedFile);
 		awaitFile(accessLog);
 		assertThat(accessLogDirectory.listFiles()).contains(accessLog);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2018 the original author or authors.
+ * Copyright 2012-2019 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -43,13 +43,10 @@ public class KotlinPluginActionIntegrationTests {
 	}
 
 	@Test
-	public void kotlinVersionMatchesKotlinPluginVersion() {
-		String output = this.gradleBuild
-				.build("kotlinVersion", "dependencies", "--configuration", "compile")
-				.getOutput();
-		assertThat(output).contains("Kotlin version: 1.2.10");
-		assertThat(output)
-				.containsPattern("org.jetbrains.kotlin:kotlin-stdlib-jdk8:* -> 1.2.10");
+	public void kotlinVersionPropertyIsSet() {
+		String output = this.gradleBuild.build("kotlinVersion", "dependencies",
+				"--configuration", "compileClasspath").getOutput();
+		assertThat(output).containsPattern("Kotlin version: [0-9]\\.[0-9]\\.[0-9]+");
 	}
 
 	@Test
