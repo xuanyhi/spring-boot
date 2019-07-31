@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -26,6 +26,7 @@ import org.glassfish.jersey.server.ResourceConfig;
 
 import org.springframework.boot.actuate.autoconfigure.endpoint.web.WebEndpointProperties;
 import org.springframework.boot.actuate.autoconfigure.web.ManagementContextConfiguration;
+import org.springframework.boot.actuate.autoconfigure.web.server.ManagementPortType;
 import org.springframework.boot.actuate.endpoint.ExposableEndpoint;
 import org.springframework.boot.actuate.endpoint.annotation.Endpoint;
 import org.springframework.boot.actuate.endpoint.web.EndpointLinksResolver;
@@ -42,16 +43,20 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplicat
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type;
 import org.springframework.boot.autoconfigure.jersey.ResourceConfigCustomizer;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
+import org.springframework.util.StringUtils;
 
 /**
- * {@link ManagementContextConfiguration} for Jersey {@link Endpoint} concerns.
+ * {@link ManagementContextConfiguration @ManagementContextConfiguration} for Jersey
+ * {@link Endpoint @Endpoint} concerns.
  *
  * @author Andy Wilkinson
  * @author Phillip Webb
  * @author Michael Simons
  * @author Madhura Bhave
+ * @author HaiTao Zhang
  */
-@ManagementContextConfiguration
+@ManagementContextConfiguration(proxyBeanMethods = false)
 @ConditionalOnWebApplication(type = Type.SERVLET)
 @ConditionalOnClass(ResourceConfig.class)
 @ConditionalOnBean(WebEndpointsSupplier.class)
@@ -59,11 +64,9 @@ import org.springframework.context.annotation.Bean;
 class JerseyWebEndpointManagementContextConfiguration {
 
 	@Bean
-	public ResourceConfigCustomizer webEndpointRegistrar(
-			WebEndpointsSupplier webEndpointsSupplier,
-			ServletEndpointsSupplier servletEndpointsSupplier,
-			EndpointMediaTypes endpointMediaTypes,
-			WebEndpointProperties webEndpointProperties) {
+	ResourceConfigCustomizer webEndpointRegistrar(WebEndpointsSupplier webEndpointsSupplier,
+			ServletEndpointsSupplier servletEndpointsSupplier, EndpointMediaTypes endpointMediaTypes,
+			WebEndpointProperties webEndpointProperties, Environment environment) {
 		List<ExposableEndpoint<?>> allEndpoints = new ArrayList<>();
 		allEndpoints.addAll(webEndpointsSupplier.getEndpoints());
 		allEndpoints.addAll(servletEndpointsSupplier.getEndpoints());
@@ -73,11 +76,15 @@ class JerseyWebEndpointManagementContextConfiguration {
 			EndpointMapping endpointMapping = new EndpointMapping(basePath);
 			Collection<ExposableWebEndpoint> webEndpoints = Collections
 					.unmodifiableCollection(webEndpointsSupplier.getEndpoints());
-			resourceConfig.registerResources(
-					new HashSet<>(resourceFactory.createEndpointResources(endpointMapping,
-							webEndpoints, endpointMediaTypes,
-							new EndpointLinksResolver(allEndpoints, basePath))));
+			resourceConfig.registerResources(new HashSet<>(resourceFactory.createEndpointResources(endpointMapping,
+					webEndpoints, endpointMediaTypes, new EndpointLinksResolver(allEndpoints, basePath),
+					shouldRegisterLinksMapping(environment, basePath))));
 		};
+	}
+
+	private boolean shouldRegisterLinksMapping(Environment environment, String basePath) {
+		return StringUtils.hasText(basePath)
+				|| ManagementPortType.get(environment).equals(ManagementPortType.DIFFERENT);
 	}
 
 }

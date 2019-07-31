@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -18,8 +18,7 @@ package org.springframework.boot.actuate.autoconfigure.web.jersey;
 
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.servlet.ServletContainer;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.jersey.ResourceConfigCustomizer;
@@ -27,8 +26,7 @@ import org.springframework.boot.autoconfigure.web.servlet.JerseyApplicationPath;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.boot.test.context.runner.WebApplicationContextRunner;
-import org.springframework.boot.testsupport.runner.classpath.ClassPathExclusions;
-import org.springframework.boot.testsupport.runner.classpath.ModifiedClassPathRunner;
+import org.springframework.boot.testsupport.classpath.ClassPathExclusions;
 import org.springframework.boot.web.servlet.ServletRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -43,43 +41,38 @@ import static org.mockito.Mockito.verify;
  * @author Andy Wilkinson
  * @author Madhura Bhave
  */
-@RunWith(ModifiedClassPathRunner.class)
 @ClassPathExclusions("spring-webmvc-*")
-public class JerseyChildManagementContextConfigurationTests {
+class JerseyChildManagementContextConfigurationTests {
 
 	private final WebApplicationContextRunner contextRunner = new WebApplicationContextRunner()
 			.withUserConfiguration(JerseyChildManagementContextConfiguration.class);
 
 	@Test
-	public void autoConfigurationIsConditionalOnServletWebApplication() {
+	void autoConfigurationIsConditionalOnServletWebApplication() {
 		ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-				.withConfiguration(AutoConfigurations
-						.of(JerseySameManagementContextConfiguration.class));
-		contextRunner.run((context) -> assertThat(context)
-				.doesNotHaveBean(JerseySameManagementContextConfiguration.class));
+				.withConfiguration(AutoConfigurations.of(JerseySameManagementContextConfiguration.class));
+		contextRunner
+				.run((context) -> assertThat(context).doesNotHaveBean(JerseySameManagementContextConfiguration.class));
 	}
 
 	@Test
-	public void autoConfigurationIsConditionalOnClassResourceConfig() {
+	void autoConfigurationIsConditionalOnClassResourceConfig() {
 		this.contextRunner.withClassLoader(new FilteredClassLoader(ResourceConfig.class))
-				.run((context) -> assertThat(context)
-						.doesNotHaveBean(JerseySameManagementContextConfiguration.class));
+				.run((context) -> assertThat(context).doesNotHaveBean(JerseySameManagementContextConfiguration.class));
 	}
 
 	@Test
-	public void resourceConfigIsCustomizedWithResourceConfigCustomizerBean() {
-		this.contextRunner.withUserConfiguration(CustomizerConfiguration.class)
-				.run((context) -> {
-					assertThat(context).hasSingleBean(ResourceConfig.class);
-					ResourceConfig config = context.getBean(ResourceConfig.class);
-					ResourceConfigCustomizer customizer = context
-							.getBean(ResourceConfigCustomizer.class);
-					verify(customizer).customize(config);
-				});
+	void resourceConfigIsCustomizedWithResourceConfigCustomizerBean() {
+		this.contextRunner.withUserConfiguration(CustomizerConfiguration.class).run((context) -> {
+			assertThat(context).hasSingleBean(ResourceConfig.class);
+			ResourceConfig config = context.getBean(ResourceConfig.class);
+			ResourceConfigCustomizer customizer = context.getBean(ResourceConfigCustomizer.class);
+			verify(customizer).customize(config);
+		});
 	}
 
 	@Test
-	public void jerseyApplicationPathIsAutoConfigured() {
+	void jerseyApplicationPathIsAutoConfigured() {
 		this.contextRunner.run((context) -> {
 			JerseyApplicationPath bean = context.getBean(JerseyApplicationPath.class);
 			assertThat(bean.getPath()).isEqualTo("/");
@@ -88,21 +81,19 @@ public class JerseyChildManagementContextConfigurationTests {
 
 	@Test
 	@SuppressWarnings("unchecked")
-	public void servletRegistrationBeanIsAutoConfigured() {
+	void servletRegistrationBeanIsAutoConfigured() {
 		this.contextRunner.run((context) -> {
-			ServletRegistrationBean<ServletContainer> bean = context
-					.getBean(ServletRegistrationBean.class);
+			ServletRegistrationBean<ServletContainer> bean = context.getBean(ServletRegistrationBean.class);
 			assertThat(bean.getUrlMappings()).containsExactly("/*");
 		});
 	}
 
 	@Test
-	public void resourceConfigCustomizerBeanIsNotRequired() {
-		this.contextRunner.run(
-				(context) -> assertThat(context).hasSingleBean(ResourceConfig.class));
+	void resourceConfigCustomizerBeanIsNotRequired() {
+		this.contextRunner.run((context) -> assertThat(context).hasSingleBean(ResourceConfig.class));
 	}
 
-	@Configuration
+	@Configuration(proxyBeanMethods = false)
 	static class CustomizerConfiguration {
 
 		@Bean

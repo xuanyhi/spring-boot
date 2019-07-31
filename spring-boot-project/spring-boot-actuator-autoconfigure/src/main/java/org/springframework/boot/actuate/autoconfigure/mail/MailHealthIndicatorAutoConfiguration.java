@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -40,26 +40,19 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
  * @author Johannes Edmeier
  * @since 2.0.0
  */
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @ConditionalOnClass(JavaMailSenderImpl.class)
 @ConditionalOnBean(JavaMailSenderImpl.class)
 @ConditionalOnEnabledHealthIndicator("mail")
 @AutoConfigureBefore(HealthIndicatorAutoConfiguration.class)
 @AutoConfigureAfter(MailSenderAutoConfiguration.class)
-public class MailHealthIndicatorAutoConfiguration extends
-		CompositeHealthIndicatorConfiguration<MailHealthIndicator, JavaMailSenderImpl> {
-
-	private final Map<String, JavaMailSenderImpl> mailSenders;
-
-	public MailHealthIndicatorAutoConfiguration(
-			Map<String, JavaMailSenderImpl> mailSenders) {
-		this.mailSenders = mailSenders;
-	}
+public class MailHealthIndicatorAutoConfiguration
+		extends CompositeHealthIndicatorConfiguration<MailHealthIndicator, JavaMailSenderImpl> {
 
 	@Bean
 	@ConditionalOnMissingBean(name = "mailHealthIndicator")
-	public HealthIndicator mailHealthIndicator() {
-		return createHealthIndicator(this.mailSenders);
+	public HealthIndicator mailHealthIndicator(Map<String, JavaMailSenderImpl> mailSenders) {
+		return createHealthIndicator(mailSenders);
 	}
 
 }

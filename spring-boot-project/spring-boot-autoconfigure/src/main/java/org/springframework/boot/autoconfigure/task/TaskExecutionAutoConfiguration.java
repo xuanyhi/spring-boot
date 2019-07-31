@@ -5,7 +5,7 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *      https://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -42,7 +42,7 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
  * @since 2.1.0
  */
 @ConditionalOnClass(ThreadPoolTaskExecutor.class)
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(TaskExecutionProperties.class)
 public class TaskExecutionAutoConfiguration {
 
@@ -51,36 +51,24 @@ public class TaskExecutionAutoConfiguration {
 	 */
 	public static final String APPLICATION_TASK_EXECUTOR_BEAN_NAME = "applicationTaskExecutor";
 
-	private final TaskExecutionProperties properties;
-
-	private final ObjectProvider<TaskExecutorCustomizer> taskExecutorCustomizers;
-
-	private final ObjectProvider<TaskDecorator> taskDecorator;
-
-	public TaskExecutionAutoConfiguration(TaskExecutionProperties properties,
-			ObjectProvider<TaskExecutorCustomizer> taskExecutorCustomizers,
-			ObjectProvider<TaskDecorator> taskDecorator) {
-		this.properties = properties;
-		this.taskExecutorCustomizers = taskExecutorCustomizers;
-		this.taskDecorator = taskDecorator;
-	}
-
 	@Bean
 	@ConditionalOnMissingBean
-	public TaskExecutorBuilder taskExecutorBuilder() {
-		TaskExecutionProperties.Pool pool = this.properties.getPool();
+	public TaskExecutorBuilder taskExecutorBuilder(TaskExecutionProperties properties,
+			ObjectProvider<TaskExecutorCustomizer> taskExecutorCustomizers,
+			ObjectProvider<TaskDecorator> taskDecorator) {
+		TaskExecutionProperties.Pool pool = properties.getPool();
 		TaskExecutorBuilder builder = new TaskExecutorBuilder();
 		builder = builder.queueCapacity(pool.getQueueCapacity());
 		builder = builder.corePoolSize(pool.getCoreSize());
 		builder = builder.maxPoolSize(pool.getMaxSize());
 		builder = builder.allowCoreThreadTimeOut(pool.isAllowCoreThreadTimeout());
 		builder = builder.keepAlive(pool.getKeepAlive());
-		Shutdown shutdown = this.properties.getShutdown();
+		Shutdown shutdown = properties.getShutdown();
 		builder = builder.awaitTermination(shutdown.isAwaitTermination());
 		builder = builder.awaitTerminationPeriod(shutdown.getAwaitTerminationPeriod());
-		builder = builder.threadNamePrefix(this.properties.getThreadNamePrefix());
-		builder = builder.customizers(this.taskExecutorCustomizers);
-		builder = builder.taskDecorator(this.taskDecorator.getIfUnique());
+		builder = builder.threadNamePrefix(properties.getThreadNamePrefix());
+		builder = builder.customizers(taskExecutorCustomizers);
+		builder = builder.taskDecorator(taskDecorator.getIfUnique());
 		return builder;
 	}
 
