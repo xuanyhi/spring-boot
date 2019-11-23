@@ -18,8 +18,8 @@ package org.springframework.boot.web.embedded.undertow;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,6 +33,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import javax.servlet.ServletContainerInitializer;
 import javax.servlet.ServletContext;
@@ -94,6 +95,8 @@ import org.springframework.util.Assert;
  */
 public class UndertowServletWebServerFactory extends AbstractServletWebServerFactory
 		implements ConfigurableUndertowWebServerFactory, ResourceLoaderAware {
+
+	private static final Pattern ENCODED_SLASH = Pattern.compile("%2F", Pattern.LITERAL);
 
 	private static final Set<Class<?>> NO_CLASSES = Collections.emptySet();
 
@@ -271,6 +274,7 @@ public class UndertowServletWebServerFactory extends AbstractServletWebServerFac
 		configureErrorPages(deployment);
 		deployment.setServletStackTraces(ServletStackTraces.NONE);
 		deployment.setResourceManager(getDocumentRootResourceManager());
+		deployment.setTempDir(createTempDir("undertow"));
 		deployment.setEagerFilterInit(this.eagerInitFilters);
 		configureMimeMappings(deployment);
 		for (UndertowDeploymentInfoCustomizer customizer : this.deploymentInfoCustomizers) {
@@ -582,14 +586,15 @@ public class UndertowServletWebServerFactory extends AbstractServletWebServerFac
 
 		private URLResource getMetaInfResource(URL resourceJar, String path) {
 			try {
-				URL resourceUrl = new URL(resourceJar + "META-INF/resources" + path);
+				String urlPath = URLEncoder.encode(ENCODED_SLASH.matcher(path).replaceAll("/"), "UTF-8");
+				URL resourceUrl = new URL(resourceJar + "META-INF/resources" + urlPath);
 				URLResource resource = new URLResource(resourceUrl, path);
 				if (resource.getContentLength() < 0) {
 					return null;
 				}
 				return resource;
 			}
-			catch (MalformedURLException ex) {
+			catch (Exception ex) {
 				return null;
 			}
 		}

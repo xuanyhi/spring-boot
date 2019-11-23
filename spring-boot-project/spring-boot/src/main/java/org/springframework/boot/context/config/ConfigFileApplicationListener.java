@@ -259,7 +259,7 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 	 * {@link BeanFactoryPostProcessor} to re-order our property sources below any
 	 * {@code @PropertySource} items added by the {@link ConfigurationClassPostProcessor}.
 	 */
-	private class PropertySourceOrderingPostProcessor implements BeanFactoryPostProcessor, Ordered {
+	private static class PropertySourceOrderingPostProcessor implements BeanFactoryPostProcessor, Ordered {
 
 		private ConfigurableApplicationContext context;
 
@@ -454,7 +454,8 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 					}
 				}
 				throw new IllegalStateException("File extension of config file location '" + location
-						+ "' is not known to any PropertySourceLoader");
+						+ "' is not known to any PropertySourceLoader. If the location is meant to reference "
+						+ "a directory, it must end in '/'");
 			}
 			Set<String> processed = new HashSet<>();
 			for (PropertySourceLoader loader : this.propertySourceLoaders) {
